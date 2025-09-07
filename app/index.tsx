@@ -277,25 +277,25 @@ const MapsVideiraSplash = () => {
         <View style={styles.socialContainer}>
           <TouchableOpacity
             style={styles.socialIcon}
-            onPress={() => openSocialLink('https://github.com/yanamorim')}
+            onPress={() => openSocialLink('https://github.com/yanslv')}
           >
             <Ionicons name="logo-github" size={20} color="#6ee7b7" />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.socialIcon}
-            onPress={() => openSocialLink('https://linkedin.com/in/yanamorim')}
+            onPress={() => openSocialLink('https://linkedin.com/in/yantech')}
           >
             <Ionicons name="logo-linkedin" size={20} color="#6ee7b7" />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.socialIcon}
-            onPress={() => openSocialLink('mailto:yan@email.com')}
+            onPress={() => openSocialLink('mailto:yan.amorim.tech@gmail.com')}
           >
             <Ionicons name="mail" size={20} color="#6ee7b7" />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.socialIcon}
-            onPress={() => openSocialLink('https://wa.me/5549999999999')}
+            onPress={() => openSocialLink('https://wa.me/5565996128425')}
           >
             <Ionicons name="logo-whatsapp" size={20} color="#6ee7b7" />
           </TouchableOpacity>
