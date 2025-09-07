@@ -5,7 +5,7 @@
 // 3. Criar uma API key
 // 4. Substituir 'YOUR_GOOGLE_PLACES_API_KEY' pela sua chave real
 
-export const GOOGLE_PLACES_API_KEY = 'AIzaSyCm5YP9Ull4uofSy46-ExfS2MFfdFLteGUr';
+export const GOOGLE_PLACES_API_KEY = 'AIzaSyAK8UFJo3a09zudUnT0KPKi_Y3kdMYGe3w';
 
 // Instruções para obter a API key:
 // 1. Acesse: https://console.cloud.google.com/

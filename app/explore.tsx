@@ -1,4 +1,5 @@
 import PhotoUpload from '@/components/PhotoUpload';
+import { bairrosVarzeaGrande, discipuladoOptions, redeOptions } from '@/constants/igrejavg';
 import { supabase } from '@/supabaseClient'; // Ajuste o caminho conforme seu projeto
 import { expoValidationUtils, useFormValidation } from '@/utils/validation';
 import { Ionicons } from '@expo/vector-icons';
@@ -65,19 +66,20 @@ const CadastroCelulaScreen = () => {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [clearPhoto, setClearPhoto] = useState(false);
 
+  // Estado para controlar se está buscando localização manualmente
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+
   // Hook de validação personalizado para Expo
   const { errors: validationErrors, validateForm, clearFieldError } = useFormValidation();
 
   // Opções para os selects
   const publicoAlvoOptions = ['Adultos', 'Jovens', 'Adolescentes', 'Juvenis', 'Kids'];
-  const bairroOptions = ['Marajoara', 'Costa verde', 'Pirineu', 'Cristo rei', 'Canelas', 'São João', 'São Cristóvão', 'Videira'];
-  const redeOptions = ['Pr. Rafael', 'Pr. Ray Raikson', 'Obr. Bruno', 'Obr. Ivan'];
-  const discipuladoOptions = ['Adilson', 'Lucas', 'Felipe Coelho', 'Daniele'];
   const diaSemanaOptions = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
 
   // Busca automática da localização ao montar o componente
   useEffect(() => {
     (async () => {
+      setIsFetchingLocation(true);
       const loc = await getCurrentLocation();
       if (loc) {
         setFormData(prev => ({
@@ -86,8 +88,23 @@ const CadastroCelulaScreen = () => {
           lng: loc.lng,
         }));
       }
+      setIsFetchingLocation(false);
     })();
   }, []);
+
+  // Função para forçar a busca manual da localização
+  const handleForceLocation = async () => {
+    setIsFetchingLocation(true);
+    const loc = await getCurrentLocation();
+    if (loc) {
+      setFormData(prev => ({
+        ...prev,
+        lat: loc.lat,
+        lng: loc.lng,
+      }));
+    }
+    setIsFetchingLocation(false);
+  };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -173,14 +190,16 @@ const CadastroCelulaScreen = () => {
   ) => {
     const [filter, setFilter] = useState('');
     // Filtra as opções conforme o texto digitado
+
     const filteredOptions = options.filter(opt =>
       opt.toLowerCase().includes(filter.toLowerCase())
     );
 
+
     return (
       <Modal visible={visible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { maxHeight: 400 }]}>
+          <View style={[styles.modalContent, { maxHeight: 320 }]}>
             <Text style={styles.modalTitle}>{title}</Text>
             <TextInput
               style={styles.modalFilterInput}
@@ -190,7 +209,7 @@ const CadastroCelulaScreen = () => {
               onChangeText={setFilter}
               autoFocus
             />
-            <ScrollView style={{ flex: 1 }}>
+            <ScrollView>
               {filteredOptions.map((item) => (
                 <TouchableOpacity
                   key={item}
@@ -212,6 +231,7 @@ const CadastroCelulaScreen = () => {
       </Modal>
     );
   };
+
   const handleSubmit = async () => {
     // Sanitizar dados para Expo
     const sanitizedData = expoValidationUtils.sanitizeForExpo(formData);
@@ -440,7 +460,7 @@ const CadastroCelulaScreen = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Localização</Text>
-          {/* Busca automática da localização, sem inputs nem botão */}
+          {/* Busca automática da localização, com botão para forçar busca caso falhe */}
           {formData.lat && formData.lng ? (
             <View style={{ marginBottom: 8 }}>
               <Text style={{ color: '#27ae60', fontWeight: 'bold', fontSize: 14 }}>
@@ -454,11 +474,27 @@ const CadastroCelulaScreen = () => {
               </Text>
             </View>
           ) : (
-            <Text style={{ color: '#e67e22', fontSize: 13 }}>
-              Buscando localização automática...
-            </Text>
+            <View style={{ marginBottom: 8 }}>
+              <Text style={{ color: '#e67e22', fontSize: 13, marginBottom: 6 }}>
+                {isFetchingLocation
+                  ? 'Buscando localização automática...'
+                  : 'Não foi possível obter a localização automaticamente.'}
+              </Text>
+              <TouchableOpacity
+                style={[
+                  styles.button,
+                  { backgroundColor: isFetchingLocation ? '#b2bec3' : '#27ae60', marginTop: 0, height: 40 }
+                ]}
+                onPress={handleForceLocation}
+                disabled={isFetchingLocation}
+              >
+                <Text style={styles.buttonText}>
+                  {isFetchingLocation ? 'Buscando localização...' : 'Tentar novamente'}
+                </Text>
+              </TouchableOpacity>
+            </View>
           )}
-          {/* Nenhum botão ou input de lat/lng */}
+          {/* Nenhum botão ou input de lat/lng além do botão de forçar busca */}
         </View>
 
         <View style={styles.section}>
@@ -494,7 +530,7 @@ const CadastroCelulaScreen = () => {
         {renderSelectModal(
           showBairroModal,
           () => setShowBairroModal(false),
-          bairroOptions,
+          bairrosVarzeaGrande,
           'bairro',
           'Selecione o bairro'
         )}
@@ -696,6 +732,17 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  modalFilterInput: {
+    color: '#000',
+    fontSize: 16,
+    fontWeight: '600',
+    backgroundColor: '#f8f9fa',
+    borderColor: '#e1e8ed',
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    marginBottom: 12
   },
   selectedNeighborhood: {
     backgroundColor: '#d5f4e6',

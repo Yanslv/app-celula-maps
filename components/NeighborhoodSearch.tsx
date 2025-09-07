@@ -1,6 +1,7 @@
 import { GOOGLE_PLACES_API_KEY } from '@/config/googlePlaces';
 import React, { useState } from 'react';
 import {
+  Alert,
   Dimensions,
   Modal,
   StyleSheet,
@@ -22,20 +23,33 @@ const NeighborhoodSearch: React.FC<NeighborhoodSearchProps> = ({
   placeholder = 'Digite o nome do bairro...',
 }) => {
   const [isVisible, setIsVisible] = useState(false);
-  
+
+  // Verificar se a API key está configurada
+  const handleOpenSearch = () => {
+    if (!GOOGLE_PLACES_API_KEY || GOOGLE_PLACES_API_KEY.includes('YOUR_GOOGLE_PLACES_API_KEY')) {
+      Alert.alert(
+        'API Key não configurada',
+        'A Google Places API key não está configurada. Entre em contato com o desenvolvedor.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    setIsVisible(true);
+  };
+
   return (
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.searchButton}
-        onPress={() => setIsVisible(true)}
+        onPress={handleOpenSearch}
       >
         <Text style={styles.searchButtonText}>🔍 Buscar Bairro</Text>
       </TouchableOpacity>
-      
+
       <Text style={styles.description}>
         Toque para buscar bairros de Várzea Grande-MT
       </Text>
-      
+
       <Modal
         visible={isVisible}
         animationType="slide"
@@ -47,35 +61,81 @@ const NeighborhoodSearch: React.FC<NeighborhoodSearchProps> = ({
             <GooglePlacesAutocomplete
               placeholder={placeholder}
               onPress={(data, details = null) => {
-                console.log(data, details);
-                // Extrair apenas o nome do bairro
-                const addressComponents = details?.address_components || [];
-                let neighborhood = '';
+                console.log('Google Places data:', data);
+                console.log('Google Places details:', details);
                 
-                // Procurar pelo componente "sublocality" ou "neighborhood"
-                for (const component of addressComponents) {
-                  console.log(component);
-                  if (component.types.includes('sublocality') || 
-                      component.types.includes('neighborhood') ||
-                      component.types.includes('sublocality_level_1')) {
-                    neighborhood = component.long_name;
-                    break;
+                // Verificar se details existe e tem address_components
+                const addressComponents = details?.address_components;
+                let neighborhood = '';
+
+                if (addressComponents && Array.isArray(addressComponents)) {
+                  for (const component of addressComponents) {
+                    if (
+                      component.types &&
+                      Array.isArray(component.types) &&
+                      (component.types.includes('sublocality_level_1') ||
+                       component.types.includes('sublocality') ||
+                       component.types.includes('neighborhood'))
+                    ) {
+                      neighborhood = component.long_name;
+                      break;
+                    }
                   }
                 }
-                
-                // Se não encontrar, usar o nome principal
-                if (!neighborhood) {
+
+                // Fallback para o texto principal se não encontrar bairro
+                if (!neighborhood && data?.structured_formatting?.main_text) {
                   neighborhood = data.structured_formatting.main_text;
                 }
+
+                // Fallback final para a descrição completa
+                if (!neighborhood && data?.description) {
+                  neighborhood = data.description.split(',')[0]; // Pega a primeira parte
+                }
+
+                console.log('Selected neighborhood:', neighborhood);
                 
-                onNeighborhoodSelected(neighborhood);
-                setIsVisible(false);
+                if (neighborhood) {
+                  onNeighborhoodSelected(neighborhood);
+                  setIsVisible(false);
+                } else {
+                  console.warn('Não foi possível extrair o nome do bairro');
+                  // Ainda assim fecha o modal e usa o que tiver
+                  onNeighborhoodSelected(data?.description || 'Local selecionado');
+                  setIsVisible(false);
+                }
+              }}
+              onFail={(error) => {
+                console.error('Google Places API Error:', error);
+                Alert.alert(
+                  'Erro na busca',
+                  'Não foi possível buscar os bairros. Verifique sua conexão com a internet.',
+                  [{ text: 'OK' }]
+                );
+              }}
+              onNotFound={() => {
+                console.log('Google Places: No results found');
               }}
               query={{
                 key: GOOGLE_PLACES_API_KEY,
                 language: 'pt-BR',
                 components: 'country:br',
-                types: '',
+                types: '(regions)',
+              }}
+              fetchDetails={true}
+              enablePoweredByContainer={false}
+              filterReverseGeocodingByTypes={['sublocality_level_1', 'sublocality', 'neighborhood']}
+              debounce={300}
+              minLength={2}
+              listEmptyComponent={() => (
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>Nenhum resultado encontrado</Text>
+                </View>
+              )}
+              textInputProps={{
+                autoCorrect: false,
+                autoCapitalize: 'words',
+                returnKeyType: 'search',
               }}
               styles={{
                 container: styles.autocompleteContainer,
@@ -83,26 +143,9 @@ const NeighborhoodSearch: React.FC<NeighborhoodSearchProps> = ({
                 textInput: styles.textInput,
                 listView: styles.listView,
                 row: styles.row,
-                description: styles.description,
               }}
-              textInputProps={{
-                placeholderTextColor: '#95a5a6',
-              }}
-              enablePoweredByContainer={false}
-              fetchDetails={true}
-              filterReverseGeocodingByTypes={[
-                'locality',
-                'administrative_area_level_3',
-              ]}
-              predefinedPlaces={[
-                {
-                  description: 'Várzea Grande, MT, Brasil',
-                  geometry: { location: { lat: -15.6511, lng: -56.1325 } },
-                },
-              ]}
-              predefinedPlacesAlwaysVisible={true}
             />
-            
+
             <TouchableOpacity
               style={styles.cancelButton}
               onPress={() => setIsVisible(false)}
@@ -200,6 +243,15 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  emptyContainer: {
+    padding: 16,
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: '#7f8c8d',
+    fontSize: 14,
+    fontStyle: 'italic',
   },
 });
 
