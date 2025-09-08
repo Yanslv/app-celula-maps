@@ -8,7 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as FileSystem from 'expo-file-system';
 import { router } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -22,13 +22,13 @@ import {
   View
 } from 'react-native';
 
-// Função utilitária para buscar localização atual
+// Função para buscar localização atual (acionada manualmente pelo usuário)
 const getCurrentLocation = async (): Promise<{ lat: string; lng: string } | null> => {
   try {
     // Solicita permissão e obtém localização
     const { status } = await (await import('expo-location')).requestForegroundPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permissão negada', 'Permita o acesso à localização para cadastrar a célula.');
+      Alert.alert('Permissão negada', 'Permita o acesso à localização para obter sua posição atual.');
       return null;
     }
     const location = await (await import('expo-location')).getCurrentPositionAsync({});
@@ -37,7 +37,7 @@ const getCurrentLocation = async (): Promise<{ lat: string; lng: string } | null
       lng: location.coords.longitude.toString(),
     };
   } catch (error) {
-    Alert.alert('Erro', 'Não foi possível obter a localização automaticamente.');
+    Alert.alert('Erro', 'Não foi possível obter a localização atual.');
     return null;
   }
 };
@@ -69,7 +69,7 @@ const CadastroCelulaScreen = () => {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [clearPhoto, setClearPhoto] = useState(false);
 
-  // Estado para controlar se está buscando localização manualmente
+  // Estado para controlar busca manual de localização
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
 
   // Hook de validação personalizado para Expo
@@ -79,24 +79,10 @@ const CadastroCelulaScreen = () => {
   const publicoAlvoOptions = ['Adultos', 'Jovens', 'Adolescentes', 'Juvenis', 'Kids'];
   const diaSemanaOptions = ['Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
 
-  // Busca automática da localização ao montar o componente
-  useEffect(() => {
-    (async () => {
-      setIsFetchingLocation(true);
-      const loc = await getCurrentLocation();
-      if (loc) {
-        setFormData(prev => ({
-          ...prev,
-          lat: loc.lat,
-          lng: loc.lng,
-        }));
-      }
-      setIsFetchingLocation(false);
-    })();
-  }, []);
+  // Busca automática removida - agora o usuário insere as coordenadas manualmente
 
-  // Função para forçar a busca manual da localização
-  const handleForceLocation = async () => {
+  // Função para buscar localização quando o usuário clicar no botão
+  const handleGetCurrentLocation = async () => {
     setIsFetchingLocation(true);
     const loc = await getCurrentLocation();
     if (loc) {
@@ -105,6 +91,7 @@ const CadastroCelulaScreen = () => {
         lat: loc.lat,
         lng: loc.lng,
       }));
+      Alert.alert('Sucesso!', `Localização obtida:\nLatitude: ${loc.lat}\nLongitude: ${loc.lng}`);
     }
     setIsFetchingLocation(false);
   };
@@ -482,41 +469,43 @@ const CadastroCelulaScreen = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Localização</Text>
-          {/* Busca automática da localização, com botão para forçar busca caso falhe */}
-          {formData.lat && formData.lng ? (
-            <View style={{ marginBottom: 8 }}>
-              <Text style={{ color: '#27ae60', fontWeight: 'bold', fontSize: 14 }}>
-                Localização detectada automaticamente!
-              </Text>
-              <Text style={{ color: '#34495e', fontSize: 13 }}>
-                Latitude: {formData.lat}
-              </Text>
-              <Text style={{ color: '#34495e', fontSize: 13 }}>
-                Longitude: {formData.lng}
-              </Text>
-            </View>
-          ) : (
-            <View style={{ marginBottom: 8 }}>
-              <Text style={{ color: '#e67e22', fontSize: 13, marginBottom: 6 }}>
-                {isFetchingLocation
-                  ? 'Buscando localização automática...'
-                  : 'Não foi possível obter a localização automaticamente.'}
-              </Text>
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  { backgroundColor: isFetchingLocation ? '#b2bec3' : '#27ae60', marginTop: 0, height: 40 }
-                ]}
-                onPress={handleForceLocation}
-                disabled={isFetchingLocation}
-              >
-                <Text style={styles.buttonText}>
-                  {isFetchingLocation ? 'Buscando localização...' : 'Tentar novamente'}
-                </Text>
-              </TouchableOpacity>
-            </View>
+
+          {/* Botão para buscar localização atual */}
+          <TouchableOpacity
+            style={[
+              styles.locationButton,
+              isFetchingLocation && styles.buttonDisabled
+            ]}
+            onPress={handleGetCurrentLocation}
+            disabled={isFetchingLocation}
+          >
+            <Text style={styles.locationButtonText}>
+              {isFetchingLocation ? '📍 Obtendo localização...' : '📍 Usar Minha Localização'}
+            </Text>
+          </TouchableOpacity>
+          <TextInput
+            style={[styles.input, validationErrors.lat && styles.inputError]}
+            placeholder="Latitude (ex: -15.601481)"
+            placeholderTextColor="#7f8c8d"
+            value={formData.lat}
+            onChangeText={(value) => handleInputChange('lat', value)}
+            keyboardType="numeric"
+          />
+          {validationErrors.lat && (
+            <Text style={styles.errorText}>{validationErrors.lat}</Text>
           )}
-          {/* Nenhum botão ou input de lat/lng além do botão de forçar busca */}
+
+          <TextInput
+            style={[styles.input, validationErrors.lng && styles.inputError]}
+            placeholder="Longitude (ex: -56.097889)"
+            placeholderTextColor="#7f8c8d"
+            value={formData.lng}
+            onChangeText={(value) => handleInputChange('lng', value)}
+            keyboardType="numeric"
+          />
+          {validationErrors.lng && (
+            <Text style={styles.errorText}>{validationErrors.lng}</Text>
+          )}
         </View>
 
         <View style={styles.section}>
@@ -536,8 +525,8 @@ const CadastroCelulaScreen = () => {
           )}
         </View>
 
-        <TouchableOpacity 
-          style={[styles.button, uploadingPhoto && styles.buttonDisabled]} 
+        <TouchableOpacity
+          style={[styles.button, uploadingPhoto && styles.buttonDisabled]}
           onPress={handleSubmit}
           disabled={uploadingPhoto}
         >
@@ -834,6 +823,51 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#856404',
     marginBottom: 4,
+  },
+  locationHelpText: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  locationTipContainer: {
+    backgroundColor: '#e8f5e8',
+    padding: 10,
+    borderRadius: 6,
+    marginTop: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#27ae60',
+  },
+  locationTipText: {
+    fontSize: 13,
+    color: '#27ae60',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  locationButton: {
+    backgroundColor: '#27ae60',
+    height: 45,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+    shadowColor: '#27ae60',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  locationButtonText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  orText: {
+    fontSize: 14,
+    color: '#7f8c8d',
+    textAlign: 'center',
+    marginBottom: 12,
+    fontStyle: 'italic',
   },
 });
 
