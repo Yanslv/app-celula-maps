@@ -1,5 +1,7 @@
+import OfflineScreen from '@/components/OfflineScreen';
 import PhotoUpload from '@/components/PhotoUpload';
 import { bairrosVarzeaGrande, discipuladoOptions, redeOptions } from '@/constants/igrejavg';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { supabase } from '@/supabaseClient'; // Ajuste o caminho conforme seu projeto
 import { expoValidationUtils, useFormValidation } from '@/utils/validation';
 import { Ionicons } from '@expo/vector-icons';
@@ -41,6 +43,7 @@ const getCurrentLocation = async (): Promise<{ lat: string; lng: string } | null
 };
 
 const CadastroCelulaScreen = () => {
+  const { isConnected, isLoading } = useNetworkStatus();
   const [formData, setFormData] = useState({
     nome_celula: '',
     nome_lider: '',
@@ -204,7 +207,7 @@ const CadastroCelulaScreen = () => {
             <TextInput
               style={styles.modalFilterInput}
               placeholder="Filtrar..."
-              placeholderTextColor="#aaa"
+              placeholderTextColor="#7f8c8d"
               value={filter}
               onChangeText={setFilter}
               autoFocus
@@ -233,6 +236,12 @@ const CadastroCelulaScreen = () => {
   };
 
   const handleSubmit = async () => {
+    // Verificar conectividade antes de enviar
+    if (!isConnected) {
+      Alert.alert('Sem Conexão', 'Você precisa estar conectado à internet para cadastrar uma célula.');
+      return;
+    }
+
     // Sanitizar dados para Expo
     const sanitizedData = expoValidationUtils.sanitizeForExpo(formData);
 
@@ -269,7 +278,12 @@ const CadastroCelulaScreen = () => {
 
       if (error) throw error;
 
-      Alert.alert('Sucesso', 'Célula cadastrada com sucesso!');
+      Alert.alert('Sucesso', 'Célula cadastrada com sucesso!', [
+        {
+          text: 'OK',
+          onPress: () => router.push('/'),
+        },
+      ]);
 
       // Limpar foto no componente
       setClearPhoto(true);
@@ -296,6 +310,11 @@ const CadastroCelulaScreen = () => {
       Alert.alert('Erro', 'Falha ao cadastrar célula: ' + (error as Error).message);
     }
   };
+
+  // Mostrar tela offline se não estiver conectado
+  if (!isConnected && !isLoading) {
+    return <OfflineScreen onRetry={() => router.back()} />;
+  }
 
   return (
     <KeyboardAvoidingView
@@ -335,6 +354,7 @@ const CadastroCelulaScreen = () => {
           <TextInput
             style={[styles.input, validationErrors.nome_celula && styles.inputError]}
             placeholder="Nome da Célula"
+            placeholderTextColor="#7f8c8d"
             value={formData.nome_celula}
             onChangeText={(value) => handleInputChange('nome_celula', value)}
           />
@@ -428,6 +448,7 @@ const CadastroCelulaScreen = () => {
           <TextInput
             style={[styles.input, validationErrors.nome_lider && styles.inputError]}
             placeholder="Nome do Líder"
+            placeholderTextColor="#7f8c8d"
             value={formData.nome_lider}
             onChangeText={(value) => handleInputChange('nome_lider', value)}
           />
@@ -438,6 +459,7 @@ const CadastroCelulaScreen = () => {
             maxLength={15}
             style={[styles.input, validationErrors.celular_lider && styles.inputError]}
             placeholder="Celular do Líder"
+            placeholderTextColor="#7f8c8d"
             value={formData.celular_lider}
             onChangeText={(value) => {
               let cleaned = value.replace(/\D/g, '');
@@ -514,8 +536,14 @@ const CadastroCelulaScreen = () => {
           )}
         </View>
 
-        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-          <Text style={styles.buttonText}>Cadastrar Célula</Text>
+        <TouchableOpacity 
+          style={[styles.button, uploadingPhoto && styles.buttonDisabled]} 
+          onPress={handleSubmit}
+          disabled={uploadingPhoto}
+        >
+          <Text style={styles.buttonText}>
+            {uploadingPhoto ? 'Enviando foto...' : 'Cadastrar Célula'}
+          </Text>
         </TouchableOpacity>
 
         {/* Modais dos Selects */}
@@ -656,6 +684,11 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  buttonDisabled: {
+    backgroundColor: '#b2bec3',
+    shadowOpacity: 0,
+    elevation: 0,
+  },
   buttonText: {
     color: '#ffffff',
     fontSize: 16,
@@ -734,7 +767,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   modalFilterInput: {
-    color: '#000',
+    color: '#2c3e50',
     fontSize: 16,
     fontWeight: '600',
     backgroundColor: '#f8f9fa',
@@ -742,7 +775,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 6,
     paddingHorizontal: 12,
-    marginBottom: 12
+    marginBottom: 12,
+    height: 44,
   },
   selectedNeighborhood: {
     backgroundColor: '#d5f4e6',

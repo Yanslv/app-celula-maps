@@ -73,48 +73,47 @@ export const useFormValidation = () => {
     
     try {
       const validatedData = celulaSchema.parse(data);
-      setErrors({});
+      
+      // Limpar erros usando função para forçar atualização
+      setErrors(prevErrors => {
+        console.log('Clearing errors, previous:', prevErrors);
+        return {};
+      });
+      
       setIsValidating(false);
       return { success: true, data: validatedData, errors: null };
     } catch (error) {
       console.log('Validation error caught:', error);
       
-      // Tratamento mais robusto para diferentes tipos de erro
+      // Tratamento específico para ZodError
       let errorMessages: Record<string, string> = {};
       
-      if (error && typeof error === 'object') {
-        // Verificar se é um ZodError
-        if (error.constructor && error.constructor.name === 'ZodError') {
-          console.log('Detected ZodError');
-          
-          // Tentar acessar errors de forma mais segura
-          const errorArray = (error as any).errors;
-          console.log('Error array:', errorArray);
-          
-          if (errorArray && typeof errorArray === 'object') {
-            // Converter para array se necessário
-            const errorsList = Array.isArray(errorArray) ? errorArray : Object.values(errorArray);
-            
-            errorsList.forEach((err: any) => {
-              if (err && err.path && err.message) {
-                const field = err.path[0];
-                if (field) {
-                  errorMessages[field] = err.message;
-                }
-              }
-            });
+      if (error instanceof z.ZodError) {
+        console.log('Processing ZodError with', error.errors.length, 'errors');
+        
+        // Processar cada erro do Zod
+        error.errors.forEach((err) => {
+          console.log('Processing error:', err);
+          if (err.path && err.path.length > 0) {
+            const field = err.path[0] as string;
+            errorMessages[field] = err.message;
+            console.log(`Mapped error for field ${field}: ${err.message}`);
           }
-        } else {
-          console.log('Non-ZodError detected:', error.constructor?.name);
-          errorMessages = { general: 'Erro de validação' };
-        }
+        });
       } else {
-        console.log('Unknown error type:', typeof error);
-        errorMessages = { general: 'Erro de validação desconhecido' };
+        console.log('Non-ZodError detected:', error);
+        errorMessages = { general: 'Erro de validação' };
       }
       
       console.log('Final error messages:', errorMessages);
-      setErrors(errorMessages);
+      
+      // Forçar atualização do estado usando uma função
+      setErrors(prevErrors => {
+        console.log('Previous errors:', prevErrors);
+        console.log('New errors:', errorMessages);
+        return { ...errorMessages };
+      });
+      
       setIsValidating(false);
       return { success: false, data: null, errors: errorMessages };
     }
@@ -128,8 +127,11 @@ export const useFormValidation = () => {
   // Limpar erro de campo específico
   const clearFieldError = useCallback((field: string) => {
     setErrors(prev => {
+      console.log(`Clearing error for field: ${field}`);
+      console.log('Previous errors:', prev);
       const newErrors = { ...prev };
       delete newErrors[field];
+      console.log('New errors after clearing:', newErrors);
       return newErrors;
     });
   }, []);

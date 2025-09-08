@@ -1,3 +1,5 @@
+import OfflineScreen from '@/components/OfflineScreen';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from 'expo-router';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -9,6 +11,7 @@ const URL_MAPS = 'https://maps-celulas.vercel.app/';
 
 const MapsEmbed: React.FC = () => {
   const navigation = useNavigation();
+  const { isConnected, isLoading } = useNetworkStatus();
 
   React.useLayoutEffect(() => {
     // Esconde o header da tela
@@ -27,6 +30,11 @@ const MapsEmbed: React.FC = () => {
       ScreenOrientation.unlockAsync();
     };
   }, []);
+
+  // Mostrar tela offline se não estiver conectado
+  if (!isConnected && !isLoading) {
+    return <OfflineScreen onRetry={() => navigation.goBack()} />;
+  }
 
   return (
     <View style={styles.container}>

@@ -1,22 +1,25 @@
+import OfflineScreen from '@/components/OfflineScreen';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Animated,
-  Dimensions,
-  Linking,
-  StatusBar,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    Animated,
+    Dimensions,
+    Linking,
+    StatusBar,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 const { width, height } = Dimensions.get('window');
 
 const MapsVideiraSplash = () => {
   const [isLoaded, setIsLoaded] = useState(false);
+  const { isConnected, isLoading } = useNetworkStatus();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -90,6 +93,10 @@ const MapsVideiraSplash = () => {
   };
 
   const handleIniciar = () => {
+    // Verificar conectividade antes de navegar
+    if (!isConnected) {
+      return; // Não navegar se estiver offline
+    }
     // Navegação para a tab explore
     router.push('/explore');
   };
@@ -145,6 +152,28 @@ const MapsVideiraSplash = () => {
       ))}
     </View>
   );
+
+  // Mostrar tela de carregamento enquanto verifica conectividade
+  if (isLoading) {
+    return (
+      <LinearGradient
+        colors={['#064e3b', '#065f46', '#0f766e']}
+        style={styles.container}
+      >
+        <View style={styles.loadingContainer}>
+          <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+            <MaterialCommunityIcons name="fruit-grapes" size={48} color="#ffffff" />
+          </Animated.View>
+          <Text style={styles.loadingText}>Verificando conexão...</Text>
+        </View>
+      </LinearGradient>
+    );
+  }
+
+  // Mostrar tela offline se não estiver conectado
+  if (!isConnected) {
+    return <OfflineScreen onRetry={() => {}} />;
+  }
 
   return (
     <LinearGradient
@@ -476,6 +505,17 @@ const styles = StyleSheet.create({
     fontSize: 10,
     textAlign: 'center',
     marginTop: 2,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#ffffff',
+    fontSize: 16,
+    marginTop: 16,
+    fontWeight: '500',
   },
 });
 

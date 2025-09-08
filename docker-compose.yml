@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  eas:
+    build: .
+    container_name: eas-cli
+    tty: true
+    stdin_open: true
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
