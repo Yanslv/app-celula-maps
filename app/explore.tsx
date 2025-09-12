@@ -3,12 +3,10 @@ import PhotoUpload from '@/components/PhotoUpload';
 import { bairrosVarzeaGrande, discipuladoOptions, redeOptions } from '@/constants/igrejavg';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { supabase } from '@/supabaseClient'; // Ajuste o caminho conforme seu projeto
-import { expoValidationUtils, useFormValidation } from '@/utils/validation';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import * as FileSystem from 'expo-file-system';
 import { router } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -72,8 +70,8 @@ const CadastroCelulaScreen = () => {
   // Estado para controlar busca manual de localização
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
 
-  // Hook de validação personalizado para Expo
-  const { errors: validationErrors, validateForm, clearFieldError } = useFormValidation();
+  // Validação simples
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   // Opções para os selects
   const publicoAlvoOptions = ['Adultos', 'Jovens', 'Adolescentes', 'Juvenis', 'Kids'];
@@ -91,15 +89,16 @@ const CadastroCelulaScreen = () => {
         lat: loc.lat,
         lng: loc.lng,
       }));
-      Alert.alert('Sucesso!', `Localização obtida:\nLatitude: ${loc.lat}\nLongitude: ${loc.lng}`);
     }
     setIsFetchingLocation(false);
   };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    // Limpar erro do campo quando usuário começar a digitar
-    clearFieldError(field);
+    // Limpar erro do campo quando não estiver mais vazio
+    if (validationErrors[field] && value.trim()) {
+      setValidationErrors(prev => ({ ...prev, [field]: '' }));
+    }
   };
 
   const handleNeighborhoodSelected = (neighborhood: string) => {
@@ -113,21 +112,21 @@ const CadastroCelulaScreen = () => {
     setUploadingPhoto(true);
 
     try {
-      // Ler arquivo como Base64
-      const base64 = await FileSystem.readAsStringAsync(imageUri, {
-        encoding: FileSystem.EncodingType.Base64
-      });
-
-      // Converter Base64 para Uint8Array
-      const binary = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
-
       const extension = imageUri.split('.').pop() || 'jpg';
       const fileName = `celula_${Date.now()}.${extension}`;
 
-      // Upload para o Supabase
+      // No React Native, usar FormData com o URI da imagem
+      const formData = new FormData();
+      formData.append('file', {
+        uri: imageUri,
+        type: `image/${extension}`,
+        name: fileName,
+      } as any);
+
+      // Upload para o Supabase usando FormData
       const { data, error } = await supabase.storage
         .from('lideres')
-        .upload(fileName, binary, {
+        .upload(fileName, formData, {
           contentType: `image/${extension}`,
           cacheControl: '3600',
           upsert: false,
@@ -145,8 +144,6 @@ const CadastroCelulaScreen = () => {
         photo: imageUrl,
       }));
 
-      Alert.alert('Sucesso!', 'Foto enviada com sucesso!');
-
     } catch (err) {
       console.error('Erro no upload:', err);
       Alert.alert('Erro', 'Falha ao enviar foto. Verifique sua conexão.');
@@ -157,6 +154,10 @@ const CadastroCelulaScreen = () => {
 
   const handleSelectOption = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    // Limpar erro do campo quando uma opção for selecionada
+    if (validationErrors[field] && value.trim()) {
+      setValidationErrors(prev => ({ ...prev, [field]: '' }));
+    }
   };
 
   const handleTimeChange = (event: any, selectedTime?: Date) => {
@@ -168,6 +169,10 @@ const CadastroCelulaScreen = () => {
         hour12: false,
       });
       setFormData(prev => ({ ...prev, horario: timeString }));
+      // Limpar erro do campo horário quando um horário for selecionado
+      if (validationErrors.horario) {
+        setValidationErrors(prev => ({ ...prev, horario: '' }));
+      }
     }
   };
 
@@ -222,6 +227,47 @@ const CadastroCelulaScreen = () => {
     );
   };
 
+  // Função de validação simples
+  const validateFormData = () => {
+    const errors: Record<string, string> = {};
+
+    if (!formData.nome_celula.trim()) {
+      errors.nome_celula = 'Nome da célula é obrigatório';
+    }
+    if (!formData.nome_lider.trim()) {
+      errors.nome_lider = 'Nome do líder é obrigatório';
+    }
+    if (!formData.celular_lider.trim()) {
+      errors.celular_lider = 'Celular do líder é obrigatório';
+    }
+    if (!formData.bairro.trim()) {
+      errors.bairro = 'Bairro é obrigatório';
+    }
+    if (!formData.rede.trim()) {
+      errors.rede = 'Rede é obrigatória';
+    }
+    if (!formData.discipulado.trim()) {
+      errors.discipulado = 'Discipulado é obrigatório';
+    }
+    if (!formData.publico_alvo.trim()) {
+      errors.publico_alvo = 'Público alvo é obrigatório';
+    }
+    if (!formData.dia_da_semana.trim()) {
+      errors.dia_da_semana = 'Dia da semana é obrigatório';
+    }
+    if (!formData.horario.trim()) {
+      errors.horario = 'Horário é obrigatório';
+    }
+    if (!formData.lat.trim()) {
+      errors.lat = 'Latitude é obrigatória';
+    }
+    if (!formData.lng.trim()) {
+      errors.lng = 'Longitude é obrigatória';
+    }
+
+    return errors;
+  };
+
   const handleSubmit = async () => {
     // Verificar conectividade antes de enviar
     if (!isConnected) {
@@ -229,37 +275,32 @@ const CadastroCelulaScreen = () => {
       return;
     }
 
-    // Sanitizar dados para Expo
-    const sanitizedData = expoValidationUtils.sanitizeForExpo(formData);
+    // Validar dados
+    const errors = validateFormData();
+    setValidationErrors(errors);
 
-    // Validar dados com Zod usando o hook
-    const validation = validateForm(sanitizedData);
-
-    if (!validation.success) {
-      Alert.alert('Erro de Validação', 'Por favor, corrija os campos destacados em vermelho.');
+    if (Object.keys(errors).length > 0) {
+      Alert.alert('Erro de Validação', 'Por favor, preencha todos os campos obrigatórios.');
       return;
     }
 
     try {
-      // Garantir que validation.data não é null
-      const validatedData = validation.data!;
-
       const { data, error } = await supabase
         .from('celulas')
         .insert([
           {
-            nome_celula: validatedData.nome_celula,
-            nome_lider: validatedData.nome_lider,
-            celular_lider: Number(validatedData.celular_lider.replace(/\D/g, '')),
-            bairro: validatedData.bairro,
-            rede: validatedData.rede,
-            discipulado: validatedData.discipulado,
-            publico_alvo: validatedData.publico_alvo,
-            dia_da_semana: validatedData.dia_da_semana,
-            horario: validatedData.horario,
-            lat: Number(validatedData.lat),
-            lng: Number(validatedData.lng),
-            photo: validatedData.photo,
+            nome_celula: formData.nome_celula,
+            nome_lider: formData.nome_lider,
+            celular_lider: Number(formData.celular_lider.replace(/\D/g, '')),
+            bairro: formData.bairro,
+            rede: formData.rede,
+            discipulado: formData.discipulado,
+            publico_alvo: formData.publico_alvo,
+            dia_da_semana: formData.dia_da_semana,
+            horario: formData.horario,
+            lat: Number(formData.lat),
+            lng: Number(formData.lng),
+            photo: formData.photo,
           }
         ]);
 
@@ -290,6 +331,9 @@ const CadastroCelulaScreen = () => {
         lng: '',
         photo: '',
       });
+
+      // Resetar erros de validação
+      setValidationErrors({});
 
       // Resetar flag de limpeza após um tempo
       setTimeout(() => setClearPhoto(false), 100);
@@ -323,18 +367,6 @@ const CadastroCelulaScreen = () => {
           <Text style={styles.title}>Cadastro de Célula</Text>
           <View style={styles.headerSpacer} />
         </View>
-
-        {/* Debug visual dos erros */}
-        {Object.keys(validationErrors).length > 0 && (
-          <View style={styles.debugContainer}>
-            <Text style={styles.debugTitle}>🔍 Erros Detectados:</Text>
-            {Object.entries(validationErrors).map(([field, error]) => (
-              <Text key={field} style={styles.debugText}>
-                {field}: {error}
-              </Text>
-            ))}
-          </View>
-        )}
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Dados da Célula</Text>
