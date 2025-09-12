@@ -13,12 +13,14 @@ import {
   Modal,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Função para buscar localização atual (acionada manualmente pelo usuário)
 const getCurrentLocation = async (): Promise<{ lat: string; lng: string } | null> => {
@@ -264,6 +266,9 @@ const CadastroCelulaScreen = () => {
     if (!formData.lng.trim()) {
       errors.lng = 'Longitude é obrigatória';
     }
+    if (!formData.photo.trim()) {
+      errors.photo = 'Foto é obrigatória';
+    }
 
     return errors;
   };
@@ -348,14 +353,16 @@ const CadastroCelulaScreen = () => {
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContainer}
-        showsVerticalScrollIndicator={false}
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
       >
+        <ScrollView
+          contentContainerStyle={styles.scrollContainer}
+          showsVerticalScrollIndicator={false}
+        >
         {/* Header com botão de voltar */}
         <View style={styles.header}>
           <TouchableOpacity
@@ -516,6 +523,7 @@ const CadastroCelulaScreen = () => {
             </Text>
           </TouchableOpacity>
           <TextInput
+            readOnly
             style={[styles.input, validationErrors.lat && styles.inputError]}
             placeholder="Latitude (ex: -15.601481)"
             placeholderTextColor="#7f8c8d"
@@ -528,6 +536,7 @@ const CadastroCelulaScreen = () => {
           )}
 
           <TextInput
+            readOnly
             style={[styles.input, validationErrors.lng && styles.inputError]}
             placeholder="Longitude (ex: -56.097889)"
             placeholderTextColor="#7f8c8d"
@@ -618,16 +627,20 @@ const CadastroCelulaScreen = () => {
             onChange={handleTimeChange}
           />
         )}
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#f5f7fa',
+  },
   container: {
     flex: 1,
     backgroundColor: '#f5f7fa',
-    marginTop: 30,
   },
   scrollContainer: {
     padding: 16,

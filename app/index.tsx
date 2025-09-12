@@ -3,17 +3,18 @@ import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-    Animated,
-    Dimensions,
-    Linking,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Dimensions,
+  Linking,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
 
@@ -156,17 +157,19 @@ const MapsVideiraSplash = () => {
   // Mostrar tela de carregamento enquanto verifica conectividade
   if (isLoading) {
     return (
-      <LinearGradient
-        colors={['#064e3b', '#065f46', '#0f766e']}
-        style={styles.container}
-      >
-        <View style={styles.loadingContainer}>
-          <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
-            <MaterialCommunityIcons name="fruit-grapes" size={48} color="#ffffff" />
-          </Animated.View>
-          <Text style={styles.loadingText}>Verificando conexão...</Text>
-        </View>
-      </LinearGradient>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+        <LinearGradient
+          colors={['#064e3b', '#065f46', '#0f766e']}
+          style={styles.container}
+        >
+          <View style={styles.loadingContainer}>
+            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+              <MaterialCommunityIcons name="fruit-grapes" size={48} color="#ffffff" />
+            </Animated.View>
+            <Text style={styles.loadingText}>Verificando conexão...</Text>
+          </View>
+        </LinearGradient>
+      </SafeAreaView>
     );
   }
 
@@ -176,15 +179,16 @@ const MapsVideiraSplash = () => {
   }
 
   return (
-    <LinearGradient
-      colors={['#064e3b', '#065f46', '#0f766e']}
-      style={styles.container}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-    >
-      <StatusBar barStyle="light-content" backgroundColor="#064e3b" />
+    <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
+      <LinearGradient
+        colors={['#064e3b', '#065f46', '#0f766e']}
+        style={styles.container}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <StatusBar barStyle="light-content" backgroundColor="#064e3b" translucent />
 
-      <BackgroundPattern />
+        <BackgroundPattern />
 
       {/* Ícones flutuantes */}
       <FloatingIcon
@@ -336,11 +340,15 @@ const MapsVideiraSplash = () => {
           Inovação • Tecnologia • Experiência do Usuário
         </Text>
       </View>
-    </LinearGradient>
+      </LinearGradient>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },

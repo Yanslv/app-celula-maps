@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "app-celula-maps",
+    "name": "Célula Maps",
     "slug": "app-celula-maps",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -12,16 +12,20 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.appmapscelula",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIViewControllerBasedStatusBarAppearance": false,
+        "UIStatusBarHidden": false
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#064e3b"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.appmapscelula"
+      "package": "com.appmapscelula",
+      "statusBarTranslucent": true,
+      "statusBarBackgroundColor": "transparent"
     },
     "web": {
       "bundler": "metro",
@@ -36,7 +40,7 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#064e3b"
         }
       ]
     ],
